@@ -1,0 +1,14 @@
+services:
+  blueprint-detector:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./outputs:/app/outputs
+    environment:
+      - PYTHONUNBUFFERED=1
+    labels:
+      - "description=TrueBUILT Blueprint Detector"
+      - "demo.url=http://localhost:8000/demo"
+      - "api.docs=http://localhost:8000/docs"
+    restart: unless-stopped
