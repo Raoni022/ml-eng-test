@@ -283,7 +283,7 @@ async def detect(
 
     Returns:
     - `annotated_image_base64`: PNG with walls (red) and rooms (distinct colors) drawn
-    - `wall_count`: number of wall segments detected
+    - `wall_segment_count`: number of wall segments detected
     - `room_count`: number of distinct rooms identified
     - `room_areas_px`: pixel area of each room
     - `image_width` / `image_height`: input image dimensions
