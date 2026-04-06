@@ -38,7 +38,7 @@ Input image
     ▼
 Preprocessing
   ├─ Grayscale conversion
-  ├─ Fast non-local means denoising (reduces JPEG/scan noise)
+  ├─ Lightweight Gaussian blur denoising
   └─ Binarization: Otsu threshold with adaptive fallback
          (fallback used when contrast is low — yellowed scans, PDFs)
     │
@@ -62,7 +62,7 @@ Wall mask rasterization
     │
     ▼
 Room segmentation
-  ├─ Morphological closing (15×15) on wall mask → seals door openings
+  ├─ Morphological closing (11×11) on wall mask → seals door openings
   ├─ Invert mask: free space becomes foreground
   ├─ Remove small free-space fragments (furniture holes, symbols)
   ├─ connectedComponentsWithStats
