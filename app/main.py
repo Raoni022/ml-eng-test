@@ -16,6 +16,8 @@ import time
 import logging
 from contextlib import asynccontextmanager
 
+import cv2
+
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
