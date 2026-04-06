@@ -21,12 +21,12 @@ from PIL import Image
 def _pdf_bytes_to_cv2(data: bytes) -> np.ndarray:
     """
     Render the first page of a PDF to a BGR numpy array using PyMuPDF.
-    DPI=150 gives enough resolution for wall detection without being slow.
+    DPI=110 keeps processing faster while preserving enough detail for wall detection.
     """
     import fitz  # PyMuPDF — imported lazily so non-PDF paths have no overhead
     doc = fitz.open(stream=data, filetype="pdf")
     page = doc[0]
-    # mat scales the page: 150 DPI ≈ zoom factor 2.08 over default 72 DPI
+    # mat scales the page: 110 DPI over default 72 DPI
     mat = fitz.Matrix(110 / 72, 110 / 72)
     pix = page.get_pixmap(matrix=mat, alpha=False)
     img_array = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, 3)
