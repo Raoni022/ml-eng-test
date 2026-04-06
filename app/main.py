@@ -30,6 +30,14 @@ from app.utils import bytes_to_cv2, cv2_to_base64_png
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
+def resize_if_needed(image, max_dim=1800):
+    h, w = image.shape[:2]
+    scale = min(1.0, max_dim / max(h, w))
+    if scale < 1.0:
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+        image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    return image
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -296,7 +304,8 @@ async def detect(
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
     try:
-        image = bytes_to_cv2(raw_bytes, filename=file.filename or "")
+       image = bytes_to_cv2(raw_bytes, filename=file.filename or "")
+       image = resize_if_needed(image, max_dim=1800)
     except Exception as e:
         logger.error(f"Image decoding failed: {e}")
         raise HTTPException(status_code=422, detail=f"Could not decode image: {str(e)}")
