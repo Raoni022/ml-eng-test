@@ -96,18 +96,15 @@ JSON response
 
 | Image | Wall segments | Rooms | Processing time | Notes |
 |---|---|---|---|---|
-| blueprint_01 | — | — | — ms | |
-| blueprint_02 | — | — | — ms | |
-| blueprint_03 | — | — | — ms | |
-
-*(Fill in with real values from `./test_api.sh` before submitting)*
+| A-102 .00 - 2ND FLOOR PLAN.pdf | 1832 | 14 | 2166.29 ms | PDF real via API local after PDF downscaling + resize cap |
+| A-112 .00 - 12TH FLOOR PLAN.pdf | 1039 | 18 | 1949.38 ms | PDF real via API local after PDF downscaling + resize cap |
 
 ### Observations
 
 **What works well**
 - Horizontal and vertical walls in standard technical drawings are detected reliably
 - Room segmentation correctly identifies enclosed regions when walls form clean boundaries
-- Processing time scales roughly linearly with image resolution — stays under 500ms for typical blueprint sizes on CPU
+- After optimization (lighter denoising, reduced PDF render DPI, and a resize cap before detection), large real blueprint PDFs processed in a few seconds on local CPU.
 
 **Known failure modes**
 - Dense annotation areas (dimension lines, hatch patterns, text blocks) generate false positive wall segments. The morphological cleanup reduces this but does not eliminate it.
@@ -185,14 +182,14 @@ Run the full detection pipeline.
 
 **Request:** `multipart/form-data` with field `file` (image upload).
 
-**Supported formats:** JPEG, PNG, TIFF, BMP, WebP, **PDF** (first page rendered at 150 DPI)
+**Supported formats:** JPEG, PNG, TIFF, BMP, WebP, **PDF** (first page rendered at 110 DPI)
 
 **Response:**
 
 ```json
 {
   "annotated_image_base64": "<base64-encoded PNG>",
-  "wall_count": 42,
+  "wall_segment_count": 42,
   "room_count": 5,
   "room_areas_px": [12000, 8500, 6200, 4100, 3300],
   "image_width": 1024,
