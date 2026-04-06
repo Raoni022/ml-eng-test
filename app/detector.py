@@ -46,8 +46,8 @@ def _binarize(gray: np.ndarray) -> np.ndarray:
     We invert so walls are WHITE and background is BLACK, which is
     the convention expected by morphological operations here.
     """
-    # Denoise first — reduces false edges from JPEG artifacts / scan noise
-    denoised = cv2.fastNlMeansDenoising(gray, h=15, templateWindowSize=7, searchWindowSize=21)
+    # Lightweight denoise for large blueprint images
+    denoised = cv2.GaussianBlur(gray, (3, 3), 0)
 
     # Otsu threshold
     otsu_thresh, binary_otsu = cv2.threshold(
