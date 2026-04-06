@@ -73,7 +73,7 @@ Room segmentation
     ▼
 JSON response
   ├─ annotated_image_base64 (PNG, lossless)
-  ├─ wall_count
+  ├─ wall_segment_count
   ├─ room_count
   ├─ room_areas_px
   ├─ image dimensions
@@ -228,7 +228,7 @@ curl -X POST http://localhost:8000/detect \
   | python3 -c "
 import sys, json, base64
 d = json.load(sys.stdin)
-print(f'Walls: {d[\"wall_count\"]}  Rooms: {d[\"room_count\"]}  Time: {d[\"processing_time_ms\"]}ms')
+print(f'Walls: {d[\"wall_segment_count\"]}  Rooms: {d[\"room_count\"]}  Time: {d[\"processing_time_ms\"]}ms')
 open('annotated.png','wb').write(base64.b64decode(d['annotated_image_base64']))
 print('Saved: annotated.png')
 "
