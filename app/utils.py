@@ -27,7 +27,7 @@ def _pdf_bytes_to_cv2(data: bytes) -> np.ndarray:
     doc = fitz.open(stream=data, filetype="pdf")
     page = doc[0]
     # mat scales the page: 150 DPI ≈ zoom factor 2.08 over default 72 DPI
-    mat = fitz.Matrix(150 / 72, 150 / 72)
+    mat = fitz.Matrix(110 / 72, 110 / 72)
     pix = page.get_pixmap(matrix=mat, alpha=False)
     img_array = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, 3)
     doc.close()
