@@ -7,8 +7,8 @@ Centralizes conversions between:
 - base64 strings (JSON response)
 
 PDF handling:
-  PDFs are rendered to a high-resolution image using PyMuPDF (fitz).
-  Only the first page is processed. DPI=150 balances detail vs speed.
+  PDFs are rendered to an image using PyMuPDF (fitz).
+  Only the first page is processed. DPI=110 improves throughput while preserving enough structural detail for wall detection.
 """
 
 import base64
