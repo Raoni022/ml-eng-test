@@ -95,9 +95,11 @@ JSON response
 > All tests run locally via `docker compose up --build` on CPU only.
 
 | Image | Wall segments | Rooms | Processing time | Notes |
-|---|---|---|---|---|
+|---|---:|---:|---:|---|
 | A-102 .00 - 2ND FLOOR PLAN.pdf | 1832 | 14 | 2166.29 ms | PDF real via API local after PDF downscaling + resize cap |
 | A-112 .00 - 12TH FLOOR PLAN.pdf | 1039 | 18 | 1949.38 ms | PDF real via API local after PDF downscaling + resize cap |
+| A0.54-FOURTH-FLOOR-REFERENCE-PLAN-Rev.1.pdf | 775 | 5 | 900.04 ms | PDF real via API local after PDF downscaling + resize cap |
+| A1.02A-SECOND-FLOOR-PLAN-PART-A-Rev.3.pdf | 875 | 8 | 1511.89 ms | PDF real via API local after PDF downscaling + resize cap |
 
 ### Observations
 
