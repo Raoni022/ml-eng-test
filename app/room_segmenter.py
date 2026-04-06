@@ -57,8 +57,8 @@ def _seal_gaps(wall_mask: np.ndarray) -> np.ndarray:
     Kernel size 15 is aggressive enough to close most door widths
     without merging adjacent rooms. Adjust if blueprints are very dense.
     """
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
-    sealed = cv2.morphologyEx(wall_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11))
+    sealed = cv2.morphologyEx(wall_mask, cv2.MORPH_CLOSE, kernel, iterations=1)
     return sealed
 
 
