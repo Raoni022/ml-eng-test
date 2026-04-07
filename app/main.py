@@ -22,13 +22,51 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-from app.detector import detect_walls
+from app.detector import detect_walls as detect_walls_cv
+from app.detector_ml import detect_walls_ml
+from app.config import (
+    DETECTOR_MODE,
+    WALL_MODEL_INPUT_SIZE,
+    WALL_MODEL_PATH,
+    WALL_MODEL_SCORE_THRESHOLD,
+)
 from app.room_segmenter import segment_rooms
 from app.schemas import DetectionResponse, HealthResponse
 from app.utils import bytes_to_cv2, cv2_to_base64_png
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
+      def detect_walls_hybrid(image):
+    """
+    Strategy:
+    - ml: force model path
+    - cv: force classical CV path
+    - hybrid (default): prefer ML, fall back to CV if model is missing/fails
+    """
+    if DETECTOR_MODE == "cv":
+        logger.info("Detector mode=cv")
+        return detect_walls_cv(image)
+
+    if DETECTOR_MODE == "ml":
+        logger.info("Detector mode=ml")
+        return detect_walls_ml(
+            image,
+            model_path=WALL_MODEL_PATH,
+            input_size=WALL_MODEL_INPUT_SIZE,
+            score_threshold=WALL_MODEL_SCORE_THRESHOLD,
+        )
+
+    try:
+        logger.info("Detector mode=hybrid (trying ML first)")
+        return detect_walls_ml(
+            image,
+            model_path=WALL_MODEL_PATH,
+            input_size=WALL_MODEL_INPUT_SIZE,
+            score_threshold=WALL_MODEL_SCORE_THRESHOLD,
+        )
+    except Exception as e:
+        logger.warning(f"ML detector unavailable, falling back to CV: {e}")
+        return detect_walls_cv(image)
 
 def resize_if_needed(image, max_dim=1800):
     h, w = image.shape[:2]
@@ -316,7 +354,7 @@ async def detect(
     t_start = time.perf_counter()
 
     # Stage 1: Wall detection
-    wall_result = detect_walls(image)
+    wall_result = detect_walls_hybrid(image)
 
     # Stage 2: Room segmentation (uses wall mask as barrier)
     room_result = segment_rooms(
