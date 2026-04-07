@@ -8,6 +8,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from training.torch_compat import patch_torch_load_for_trusted_weights
+
+patch_torch_load_for_trusted_weights()
+
 from ultralytics import YOLO
 
 
