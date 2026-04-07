@@ -92,7 +92,7 @@ JSON response
 ## Results on test data
 
 > Results obtained by running the pipeline on the provided test blueprints.
-> All tests run locally via `docker compose up --build` on CPU only.
+> Results obtained on local CPU, with similar inference behavior confirmed through Docker validation.
 
 | Image | Wall segments | Rooms | Processing time | Notes |
 |---|---:|---:|---:|---|
@@ -100,6 +100,10 @@ JSON response
 | A-112 .00 - 12TH FLOOR PLAN.pdf | 1039 | 18 | 1949.38 ms | PDF real via API local after PDF downscaling + resize cap |
 | A0.54-FOURTH-FLOOR-REFERENCE-PLAN-Rev.1.pdf | 775 | 5 | 900.04 ms | PDF real via API local after PDF downscaling + resize cap |
 | A1.02A-SECOND-FLOOR-PLAN-PART-A-Rev.3.pdf | 875 | 8 | 1511.89 ms | PDF real via API local after PDF downscaling + resize cap |
+
+### Example annotated output
+
+![Annotated blueprint example](outputs/annotated_A102.png)
 
 ### Observations
 
@@ -116,7 +120,7 @@ JSON response
 
 **Design tradeoffs explicitly made**
 - `wall_segment_count` counts Hough line segments, not consolidated architectural walls. One long wall typically produces several segments. This is a known limitation of the Hough approach.
-- Door openings are sealed by the morphological closing kernel (15×15 px). Rooms connected by wide corridors may merge into a single detected region if the opening exceeds the kernel width.
+- Door openings are sealed by the morphological closing kernel (11×11 px). Rooms connected by wide corridors may merge into a single detected region if the opening exceeds the kernel width.
 - Fixture detection (doors, windows, light switches) was intentionally excluded. Off-the-shelf YOLO models trained on natural images do not generalize to blueprint symbols — detection would require a domain-specific annotated dataset, which is outside the scope of this assignment.
 
 ---
@@ -255,6 +259,15 @@ truebuilt-ml-test/
 ├── test_api.sh
 └── README.md
 ```
+---
+
+## Future improvements
+
+- Consolidate Hough line segments into higher-level architectural wall instances
+- Add support for diagonal walls and more complex room geometries
+- Evaluate precision/recall on a labeled blueprint dataset
+- Compare the current classical CV baseline against a fine-tuned blueprint-specific detector
+- Export a future learned detector to ONNX Runtime for optimized inference
 
 ---
 
