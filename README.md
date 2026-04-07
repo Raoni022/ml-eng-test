@@ -208,9 +208,10 @@ Interactive docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## Testing
+## Automated tests
 
 ```bash
+pytest
 # Make script executable (first time)
 chmod +x test_api.sh
 
