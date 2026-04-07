@@ -215,6 +215,7 @@ Interactive docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 ```bash
 pytest
 
+---
 
 ### Manual API Test
 
@@ -232,6 +233,8 @@ The script:
 1. Calls `/health`
 2. Calls `/detect` and prints metadata
 3. Saves the annotated PNG to `outputs/`
+
+---
 
 ### Manual curl
 
