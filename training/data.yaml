@@ -1,0 +1,19 @@
+# training/data.yaml
+# Update these paths to your local dataset.
+#
+# Recommended layout:
+# dataset/
+#   images/
+#     train/
+#     val/
+#   labels/
+#     train/
+#     val/
+
+path: ./dataset
+train: images/train
+val: images/val
+
+# Single class: wall
+names:
+  0: wall
