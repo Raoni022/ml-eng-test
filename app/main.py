@@ -24,19 +24,21 @@ from fastapi.responses import HTMLResponse
 
 from app.detector import detect_walls as detect_walls_cv
 from app.detector_ml import detect_walls_ml
+from app.room_segmenter import segment_rooms
+from app.schemas import DetectionResponse, HealthResponse
+from app.utils import bytes_to_cv2, cv2_to_base64_png
 from app.config import (
     DETECTOR_MODE,
     WALL_MODEL_INPUT_SIZE,
     WALL_MODEL_PATH,
     WALL_MODEL_SCORE_THRESHOLD,
 )
-from app.room_segmenter import segment_rooms
-from app.schemas import DetectionResponse, HealthResponse
-from app.utils import bytes_to_cv2, cv2_to_base64_png
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
-      def detect_walls_hybrid(image):
+
+
+def detect_walls_hybrid(image):
     """
     Strategy:
     - ml: force model path
@@ -68,6 +70,7 @@ logger = logging.getLogger(__name__)
         logger.warning(f"ML detector unavailable, falling back to CV: {e}")
         return detect_walls_cv(image)
 
+
 def resize_if_needed(image, max_dim=1800):
     h, w = image.shape[:2]
     scale = min(1.0, max_dim / max(h, w))
@@ -76,6 +79,7 @@ def resize_if_needed(image, max_dim=1800):
         new_h = int(h * scale)
         image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
     return image
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -88,9 +92,9 @@ app = FastAPI(
     title="TrueBUILT Blueprint Detector",
     description=(
         "Computer vision API for detecting walls and rooms in architectural blueprints. "
-        "Uses classical OpenCV pipeline — no GPU or pre-trained model weights required."
+        "Supports ML-based wall detection via ONNX with CV fallback."
     ),
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -143,7 +147,7 @@ _DEMO_HTML = """<!DOCTYPE html>
     #status { margin-top: 16px; font-size: 0.9rem; color: #555; min-height: 20px; text-align: center; }
     .results {
       display: none; margin-top: 40px; gap: 24px;
-      grid-template-columns: 1fr 1fr; 
+      grid-template-columns: 1fr 1fr;
     }
     .results.visible { display: grid; }
     .panel {
@@ -173,13 +177,13 @@ _DEMO_HTML = """<!DOCTYPE html>
 <body>
   <header>
     <h1>TrueBUILT — Blueprint Detector</h1>
-    <span>Wall &amp; Room Detection · OpenCV Pipeline</span>
+    <span>Hybrid ML + CV Wall Detection · Room Segmentation</span>
   </header>
   <main>
     <div class="upload-zone" id="drop-zone">
-      <strong>Upload a blueprint image</strong>
-      <p>JPEG, PNG, TIFF, BMP, or WebP</p>
-      <input type="file" id="file-input" accept="image/*">
+      <strong>Upload a blueprint image or PDF</strong>
+      <p>JPEG, PNG, TIFF, BMP, WebP, or PDF</p>
+      <input type="file" id="file-input" accept="image/*,.pdf,application/pdf">
       <button class="btn" id="browse-btn" onclick="document.getElementById('file-input').click()">
         Choose file
       </button>
@@ -248,14 +252,21 @@ _DEMO_HTML = """<!DOCTYPE html>
       selectedFile = file;
       status.textContent = `Selected: ${file.name}`;
       runBtn.style.display = 'inline-block';
-      // Show original preview
-      const reader = new FileReader();
-      reader.onload = ev => {
-        document.getElementById('original-img').src = ev.target.result;
+
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (isPdf) {
+        document.getElementById('original-img').src = '';
         results.classList.add('visible');
         document.getElementById('annotated-img').src = '';
-      };
-      reader.readAsDataURL(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          document.getElementById('original-img').src = ev.target.result;
+          results.classList.add('visible');
+          document.getElementById('annotated-img').src = '';
+        };
+        reader.readAsDataURL(file);
+      }
     }
 
     runBtn.addEventListener('click', async () => {
@@ -305,7 +316,6 @@ async def demo():
     return HTMLResponse(content=_DEMO_HTML)
 
 
-
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health():
     """Liveness probe — returns 200 when the service is ready."""
@@ -327,7 +337,6 @@ async def detect(
     - `image_width` / `image_height`: input image dimensions
     - `processing_time_ms`: end-to-end server processing time
     """
-    # Accept image/* and application/pdf
     if file.content_type and not (
         file.content_type.startswith("image/")
         or file.content_type == "application/pdf"
@@ -342,8 +351,8 @@ async def detect(
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
     try:
-       image = bytes_to_cv2(raw_bytes, filename=file.filename or "")
-       image = resize_if_needed(image, max_dim=1800)
+        image = bytes_to_cv2(raw_bytes, filename=file.filename or "")
+        image = resize_if_needed(image, max_dim=1800)
     except Exception as e:
         logger.error(f"Image decoding failed: {e}")
         raise HTTPException(status_code=422, detail=f"Could not decode image: {str(e)}")
@@ -353,10 +362,8 @@ async def detect(
 
     t_start = time.perf_counter()
 
-    # Stage 1: Wall detection
     wall_result = detect_walls_hybrid(image)
 
-    # Stage 2: Room segmentation (uses wall mask as barrier)
     room_result = segment_rooms(
         base_image=wall_result.annotated_image,
         wall_mask=wall_result.wall_mask,
