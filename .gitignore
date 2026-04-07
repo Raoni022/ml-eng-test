@@ -1,8 +1,10 @@
 .venv/
+.venv311/
 dataset/
 datasets/
+runs/
 __pycache__/
 *.pyc
 response*.json
 models/*.onnx
-runs/
+yolov8n-seg.pt
