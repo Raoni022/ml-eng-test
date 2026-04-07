@@ -292,3 +292,34 @@ truebuilt-ml-test/
 | Pydantic v2 | Request/response validation |
 | Uvicorn | ASGI server |
 | Docker | Containerization |
+
+---
+
+## Hybrid ML + CV Architecture
+
+This project now supports a hybrid detection pipeline:
+
+- **ML wall detection via ONNX Runtime** using a trained wall detector
+- **Classical CV fallback** for robustness when the model is unavailable
+- **Room segmentation downstream** using the wall mask as geometric structure
+
+---
+
+### Runtime modes
+
+The API supports three detector modes through environment variables:
+
+- `DETECTOR_MODE=ml` → force ML detector
+- `DETECTOR_MODE=cv` → force classical OpenCV detector
+- `DETECTOR_MODE=hybrid` → try ML first, fall back to CV if needed
+
+---
+
+### Model path
+
+Place the exported ONNX model here:
+
+```bash
+models/wall_detector.onnx
+
+---
