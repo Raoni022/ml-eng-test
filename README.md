@@ -16,13 +16,28 @@ Hybrid **ML + CV** blueprint analysis API for detecting walls and segmenting roo
 
 ## Overview
 
-This project uses a **hybrid wall-detection architecture**:
+This project implements a **hybrid wall-detection architecture**:
 
 - **Primary path:** ML-based wall detection via **ONNX Runtime**
 - **Fallback path:** classical **OpenCV** wall detection
 - **Shared downstream stage:** room segmentation from the wall mask using connected components
 
 This design keeps the solution aligned with the ML focus of the assignment while preserving a deterministic fallback path for robustness and explainability.
+
+---
+
+## Validated modes
+
+The following runtime modes were validated locally:
+
+- `DETECTOR_MODE=ml`
+- `DETECTOR_MODE=hybrid`
+
+Validation included:
+
+- `GET /health`
+- `POST /detect` with blueprint image input
+- end-to-end API response generation with annotated image output
 
 ---
 
@@ -56,7 +71,7 @@ Input image / PDF
 Image decoding + optional resize
     │
     ▼
-ONNX wall detector
+YOLOv8-seg ONNX wall detector
     │
     ▼
 Binary wall mask
@@ -98,10 +113,29 @@ Once a wall mask is available, room segmentation proceeds as follows:
 
 - morphological closing seals small wall gaps and door openings
 - wall mask is inverted so free space becomes foreground
-- connected components identifies enclosed free-space regions
+- connected components identify enclosed free-space regions
 - small/noisy regions are filtered out
 - border-touching exterior regions are excluded
 - valid rooms are colorized and labeled on the annotated output
+
+---
+
+## Model artifact
+
+The ONNX model is expected at:
+
+```bash
+models/wall_detector.onnx
+```
+
+This file is used by the ML detection path.
+
+If the ONNX model is not present:
+
+- `DETECTOR_MODE=ml` will fail because the model artifact is required
+- `DETECTOR_MODE=hybrid` will automatically fall back to the classical CV detector
+
+> **Note:** the trained ONNX model is **not versioned in the repository**. To run the ML path, place the exported model at `models/wall_detector.onnx`.
 
 ---
 
@@ -113,15 +147,44 @@ The API supports three detector modes through environment variables:
 - `DETECTOR_MODE=cv` → force classical CV detector
 - `DETECTOR_MODE=hybrid` → try ML first, fall back to CV if needed
 
-### Model path
+---
 
-Place the exported ONNX model here:
+## Qualitative results
 
-```bash
-models/wall_detector.onnx
+The system was validated qualitatively on blueprint inputs and produced:
+
+- wall detection overlays
+- room segmentation overlays
+- structured JSON responses with wall and room counts
+
+### Suggested examples to include in the repository
+
+If time allows, add 2–3 image pairs under a folder such as:
+
+```text
+docs/examples/
 ```
 
-If the ONNX model is not present, `DETECTOR_MODE=hybrid` automatically falls back to the classical CV detector.
+Recommended naming:
+
+```text
+docs/examples/
+  example_1_input.png
+  example_1_output.png
+  example_2_input.png
+  example_2_output.png
+  example_3_input.png
+  example_3_output.png
+```
+
+Then reference them here:
+
+```md
+![Example 1 input](docs/examples/example_1_input.png)
+![Example 1 output](docs/examples/example_1_output.png)
+```
+
+Even 2 examples are enough to reduce evaluator uncertainty.
 
 ---
 
@@ -172,7 +235,7 @@ For PDFs, only the **first page** is processed.
 
 ## Setup & Running
 
-### Option A — Docker (recommended)
+### Option A — Docker
 
 ```bash
 git clone <your-fork-url>
@@ -180,11 +243,23 @@ cd ml-eng-test
 docker compose up --build
 ```
 
-API base URL:
+### Docker note
 
-```text
-http://localhost:8000
+The Docker image expects the ONNX model to be available at:
+
+```bash
+models/wall_detector.onnx
 ```
+
+If you are running the ML path in Docker, ensure that `models/wall_detector.onnx` is available inside the container build context before startup.
+
+If the model is not present, run with:
+
+```bash
+DETECTOR_MODE=hybrid
+```
+
+to allow fallback to the classical CV detector.
 
 ### Option B — Local Python
 
@@ -192,20 +267,26 @@ http://localhost:8000
 python -m venv .venv
 source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Run explicitly in ML mode
+
+```bash
+DETECTOR_MODE=ml python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Run explicitly in hybrid mode
 
 ```bash
-DETECTOR_MODE=hybrid uvicorn app.main:app --host 0.0.0.0 --port 8000
+DETECTOR_MODE=hybrid python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Windows PowerShell:
 
 ```powershell
 $env:DETECTOR_MODE="hybrid"
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ---
@@ -223,7 +304,7 @@ curl http://localhost:8000/health
 Example response:
 
 ```json
-{"status":"ok","version":"1.0.0"}
+{"status":"ok","version":"1.1.0"}
 ```
 
 ### `GET /demo`
@@ -244,7 +325,7 @@ Example:
 
 ```bash
 curl -X POST http://localhost:8000/detect \
-  -F "file=@test_data/blueprint_01.jpg"
+  -F "file=@dataset/images/val/001_A-193.png"
 ```
 
 ---
@@ -255,37 +336,18 @@ curl -X POST http://localhost:8000/detect \
 
 ```bash
 curl http://localhost:8000/health
-```
-
-```bash
 python -m compileall app
+python -m pytest
 ```
 
-### Manual API test script
+### Training and export (local workflow)
 
 ```bash
-chmod +x test_api.sh
-./test_api.sh test_data/blueprint_01.jpg
-```
-
-Custom API URL:
-
-```bash
-API_URL=http://localhost:8000 ./test_api.sh path/to/your/blueprint.png
-```
-
-### Manual curl + save annotated output
-
-```bash
-curl -X POST http://localhost:8000/detect \
-  -F "file=@test_data/blueprint_01.jpg" \
-  | python3 -c "
-import sys, json, base64
-d = json.load(sys.stdin)
-print(f'Walls: {d[\"wall_segment_count\"]}  Rooms: {d[\"room_count\"]}  Time: {d[\"processing_time_ms\"]}ms')
-open('annotated.png','wb').write(base64.b64decode(d['annotated_image_base64']))
-print('Saved: annotated.png')
-"
+python -m training.prepare_dataset --sources datasets/Walls datasets/Rooms outputs --out dataset --max-files 24 --val-ratio 0.2
+python -m training.generate_pseudo_labels --dataset-root dataset
+python -m training.convert_masks_to_yolo_seg --dataset-root dataset --mask-dir pseudo_masks
+python -m training.train_yolo --data training/data.yaml --model yolov8n-seg.pt
+python -m training.export_onnx --weights runs/blueprint-wall/yolov8-wall2/weights/best.pt
 ```
 
 ---
@@ -303,16 +365,22 @@ ml-eng-test/
 │   ├── utils.py
 │   └── config.py
 ├── training/
+│   ├── prepare_dataset.py
+│   ├── generate_pseudo_labels.py
+│   ├── convert_masks_to_yolo_seg.py
 │   ├── train_yolo.py
 │   ├── export_onnx.py
+│   ├── torch_compat.py
 │   └── data.yaml
 ├── models/
+│   ├── README.md
 │   └── wall_detector.onnx
+├── tests/
 ├── outputs/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
-├── test_api.sh
+├── DATASET_WORKFLOW.md
 ├── HYBRID_GUIDE.md
 └── README.md
 ```
@@ -339,8 +407,9 @@ ml-eng-test/
 ## Known limitations
 
 - The quality of the **ML path** depends on the quality and quantity of labeled blueprint training data.
+- The training set used here is small and was bootstrapped with pseudo-labels before ONNX export.
 - If the ONNX model is missing or incompatible, hybrid mode falls back to the CV detector.
-- The classical CV fallback is still more sensitive to dense annotations, hatch patterns, and dimension lines.
+- The classical CV fallback is more sensitive to dense annotations, hatch patterns, and dimension lines.
 - Diagonal or highly irregular wall geometries may require additional model training and post-processing improvements.
 - Fixture detection (doors, windows, symbols) is not currently included.
 
@@ -352,7 +421,8 @@ ml-eng-test/
 - Add fixture detection as separate classes
 - Benchmark ML and CV paths quantitatively on a labeled validation set
 - Improve support for diagonal walls and more complex geometries
-- Optimize ONNX inference and model size for faster CPU serving
+- Package model delivery more cleanly for reproducible container startup
+- Add curated qualitative examples directly to the repository
 
 ---
 
@@ -362,8 +432,9 @@ This submission prioritizes:
 
 - a working inference API
 - model-serving support through ONNX Runtime
+- a validated ML execution path
 - deterministic fallback behavior
 - clear room segmentation output
-- reproducible local and Docker execution
+- reproducible local and Docker-oriented execution
 
 The result is intended to be both **practical to run** and **well-aligned with the ML engineering focus** of the assignment.
