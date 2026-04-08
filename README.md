@@ -345,7 +345,7 @@ ml-eng-test/
 │   └── data.yaml
 ├── models/
 │   ├── README.md
-│   └── wall_detector.onnx
+│   └── wall_detector.onnx   # expected locally, not versioned
 ├── tests/
 ├── outputs/
 ├── Dockerfile
