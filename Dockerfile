@@ -28,6 +28,7 @@ COPY --from=builder /install /usr/local
 
 # Copy application code
 COPY app/ ./app/
+COPY models/ ./models/
 
 # Non-root user for security
 RUN useradd -m appuser
