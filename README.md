@@ -157,35 +157,6 @@ The system was validated qualitatively on blueprint inputs and produced:
 - room segmentation overlays
 - structured JSON responses with wall and room counts
 
-### Suggested examples to include in the repository
-
-If time allows, add 2–3 image pairs under a folder such as:
-
-```text
-docs/examples/
-```
-
-Recommended naming:
-
-```text
-docs/examples/
-  example_1_input.png
-  example_1_output.png
-  example_2_input.png
-  example_2_output.png
-  example_3_input.png
-  example_3_output.png
-```
-
-Then reference them here:
-
-```md
-![Example 1 input](docs/examples/example_1_input.png)
-![Example 1 output](docs/examples/example_1_output.png)
-```
-
-Even 2 examples are enough to reduce evaluator uncertainty.
-
 ---
 
 ## API response format
